@@ -1,0 +1,18 @@
+{
+  "name": "Awana Jordan – أندية أوانا الأردن",
+  "short_name": "Awana Jordan",
+  "description": "قاعدة بيانات أندية أوانا في الأردن",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1f3f7f",
+  "theme_color": "#1f3f7f",
+  "lang": "ar",
+  "dir": "auto",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

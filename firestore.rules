@@ -1,0 +1,72 @@
+rules_version = '2';
+
+// قواعد حماية أندية أوانا الأردن
+// admin  = مسؤول الشرق الأوسط (حساب إيميل): كل الصلاحيات، والوحيد اللي يمسح نادي ويدير كلمات المرور
+// jordan = مسؤول الأردن: يضيف ويعدّل ويرفع صور، لا يمسح نادي
+// view   = عرض واستخراج فقط
+// كلمتا مرور jordan و view محفوظتان في secrets/keys (لا يقرؤها إلا المدير).
+// كل جهاز يدخل بيسجّل جلسة sessions/{uid} فيها الكلمة اللي كتبها، والقواعد بتقارنها بالكلمة الحالية
+// مع كل طلب؛ فلو المدير غيّر الكلمة أو أوقف الحساب، كل الأجهزة القديمة بتفقد الصلاحية فوراً.
+// لو غيّرت إيميل المدير في config.js غيّره هنا كمان (بحروف صغيرة).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isAdmin()  { return signedIn() && request.auth.token.get('email', '') == 'admin@awanajo.app'; }
+
+    function sessPath() { return /databases/$(database)/documents/sessions/$(request.auth.uid); }
+    function keysPath() { return /databases/$(database)/documents/secrets/keys; }
+    function hasSession(r) {
+      return signedIn() && exists(sessPath()) && exists(keysPath())
+        && get(sessPath()).data.role == r
+        && get(keysPath()).data.get(r + 'On', false) == true
+        && get(sessPath()).data.key == get(keysPath()).data.get(r, '');
+    }
+    function isEditor() { return isAdmin() || hasSession('jordan'); }
+    function isReader() { return isEditor() || hasSession('view'); }
+
+    // كلمات المرور: المدير فقط
+    match /secrets/{id} { allow read, write: if isAdmin(); }
+
+    // جلسات الأجهزة: الجهاز يسجّل جلسته بشرط إن كلمة المرور صحيحة والحساب مفعّل
+    match /sessions/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.role in ['jordan', 'view']
+        && request.resource.data.key is string
+        && request.resource.data.key.size() >= 6
+        && exists(keysPath())
+        && get(keysPath()).data.get(request.resource.data.role + 'On', false) == true
+        && request.resource.data.key == get(keysPath()).data.get(request.resource.data.role, '');
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+    }
+
+    // النادي لازم يفضل له اسم، ومسحه للمدير فقط
+    match /clubs/{id} {
+      allow read: if isReader();
+      allow create, update: if isEditor()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0;
+      allow delete: if isAdmin();
+    }
+
+    match /kids/{id}    { allow read: if isReader(); allow write: if isEditor(); }
+    match /leaders/{id} { allow read: if isReader(); allow write: if isEditor(); }
+    match /weeks/{id}   { allow read: if isReader(); allow write: if isEditor(); }
+
+    // الصور مضغوطة داخل قاعدة البيانات: نسخة كاملة + نسخة مصغّرة
+    match /photos/{id} {
+      allow read: if isReader();
+      allow create, update: if isEditor() && request.resource.data.data is string
+        && request.resource.data.data.size() < 1000000;
+      allow delete: if isEditor();
+    }
+    match /thumbs/{id} {
+      allow read: if isReader();
+      allow create, update: if isEditor() && request.resource.data.data is string
+        && request.resource.data.data.size() < 200000;
+      allow delete: if isEditor();
+    }
+  }
+}
