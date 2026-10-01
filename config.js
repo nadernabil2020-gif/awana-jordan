@@ -9,8 +9,12 @@ window.FIREBASE_CONFIG = {
   appId: "1:782295690828:web:ba527d4e6c84e1e4bc0ee9"
 };
 
-// 2) إيميل حساب المدير (مسؤول الشرق الأوسط) - نفس الإيميل في Authentication > Users
-//    لو غيّرته هنا غيّره كمان في firestore.rules
-window.AWANA_ADMIN_EMAIL = "admin@awanajo.app";
+// 2) إيميل حساب المدير (مسؤول الشرق الأوسط) - إيميل حقيقي عشان «نسيت كلمة المرور» يوصلك
+//    لازم يكون نفس الإيميل في Authentication > Users وفي firestore.rules
+window.AWANA_ADMIN_EMAIL = "nadernabil2020@gmail.com";
 
-// كلمات مرور مسؤول الأردن والعرض تُدار من داخل التطبيق: الإعدادات (للمدير فقط)
+// 3) اختياري: حماية إضافية ضد تخمين كلمات المرور (Firebase App Check + reCAPTCHA v3)
+//    سيبه فاضي لحد ما تفعّله (الخطوات في ملف اقرأني)
+window.RECAPTCHA_V3_SITE_KEY = "";
+
+// كلمات مرور مسؤول الأردن والعرض ومديري الأندية تُدار من داخل التطبيق: الإعدادات (للمدير فقط)

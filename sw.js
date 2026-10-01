@@ -1,7 +1,7 @@
 // Awana Jordan service worker: lets the app install on phones and open without internet.
 // Own files: network first (updates show up right away), cache as fallback.
 // Libraries and fonts: cache first.
-const CACHE = "awana-jo-v2";
+const CACHE = "awana-jo-v4";
 const SHELL = ["./", "./index.html", "./app.js", "./config.js", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 const LIBS = ["www.gstatic.com", "cdnjs.cloudflare.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 
