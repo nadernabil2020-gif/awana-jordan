@@ -1349,19 +1349,26 @@ if(!CFG.projectId||/ضع/.test(CFG.projectId)){
   auth=getAuth(APP);
   try{ fs=initializeFirestore(APP,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})}); }
   catch{ fs=initializeFirestore(APP,{}); }
+  // the link's account (?as=) is only enforced on this tab's first sign-in check. Sign-in is shared by every
+  // tab of the browser, so if another tab switches account later, this tab follows it instead of signing out
+  // (signing out here would sign out the other tab too).
+  let firstAuth=true;
   onAuthStateChanged(auth, async u=>{
     if(loggingIn) return;
+    const enforce=firstAuth; firstAuth=false;
     if(!u){ if(ROLE) resetState(); return loginView(pendingMsg); }
     if(!u.isAnonymous){
       if(String(u.email||"").toLowerCase()!==ADMIN_EMAIL){ await signOut(auth); return loginView(L("هذا الحساب غير مسموح له بالدخول.","This account isn't allowed.")); }
-      if(wanted && wanted!=="admin") return logout();
+      if(enforce && wanted && wanted!=="admin") return logout();
+      if(!enforce && ROLE && ROLE!=="admin") toast(L("تم الدخول بحساب المدير من نافذة أخرى في نفس المتصفح.","The admin signed in from another tab of this browser."));
       return start("admin");
     }
     let s={};
     try{ const d=await getDoc(doc(fs,"sessions",u.uid)); s=d.exists()?d.data():{}; }catch{}
-    if(!["jordan","view","club"].includes(s.role)) return logout(pendingMsg);
+    if(!["jordan","view","club"].includes(s.role)){ if(!enforce&&ROLE) return; return logout(pendingMsg); }
     // opening another account's link on a device that's signed in switches accounts
-    if(wanted && (wanted!==s.role || (wanted==="club"&&wantedClub&&wantedClub!==s.clubId))) return logout();
+    if(enforce && wanted && (wanted!==s.role || (wanted==="club"&&wantedClub&&wantedClub!==s.clubId))) return logout();
+    if(!enforce && ROLE && ROLE!==s.role) toast(L("تم الدخول بحساب آخر من نافذة أخرى في نفس المتصفح.","Another account signed in from another tab of this browser."));
     start(s.role, s.clubId||"");
   });
 }
