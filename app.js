@@ -276,6 +276,8 @@ const inSeason = w => !S.season||seasonOf(w.date)===S.season;
 const clubWeeks = id => clubWeeksAll(id).filter(inSeason);
 // #13 a child keeps attendance from every club they belonged to
 function memberAt(k,w){
+  // a child marked present (or given points) in a meeting obviously belonged to it
+  if(presentIn(w,k.id)||(w.progress||{})[k.id]) return true;
   const h=k.clubHistory;
   if(!h||!h.length) return w.clubId===k.clubId && (!k.joined||String(w.date)>=k.joined);
   return h.some(e=>e.clubId===w.clubId && (!e.from||String(w.date)>=e.from) && (!e.to||String(w.date)<=e.to));
@@ -513,7 +515,9 @@ function weeksTab(c,weeks){
 function weekView(){
   const w=S.weeks.find(x=>x.id===S.route.id); const c=w&&club(w.clubId);
   if(!w||!c) return `<p class="muted">${L("جارٍ التحميل…","Loading…")}</p>`;
-  const kids=S.kids.filter(k=>(isActive(k)&&memberAt(k,w))||presentIn(w,k.id)).sort((a,b)=>String(a.name).localeCompare(String(b.name),"ar"));
+  // every active child currently in this club, even if registered after this meeting's date,
+  // plus anyone already marked in it (e.g. a child who later moved to another club)
+  const kids=S.kids.filter(k=>(isActive(k)&&(k.clubId===w.clubId||memberAt(k,w)))||presentIn(w,k.id)).sort((a,b)=>String(a.name).localeCompare(String(b.name),"ar"));
   const groups=PROGRAMS.map(p=>[p,kids.filter(k=>k.program===p.k)]).filter(([,l])=>l.length);
   const other=kids.filter(k=>!PMAP[k.program]); if(other.length) groups.push([{n:L("بدون مرحلة","No program"),c:"--muted"},other]);
   const photos=w.photos||[]; const pc=presentCount(w);
@@ -1360,7 +1364,6 @@ if(!CFG.projectId||/ضع/.test(CFG.projectId)){
     if(!u.isAnonymous){
       if(String(u.email||"").toLowerCase()!==ADMIN_EMAIL){ await signOut(auth); return loginView(L("هذا الحساب غير مسموح له بالدخول.","This account isn't allowed.")); }
       if(enforce && wanted && wanted!=="admin") return logout();
-      if(!enforce && ROLE && ROLE!=="admin") toast(L("تم الدخول بحساب المدير من نافذة أخرى في نفس المتصفح.","The admin signed in from another tab of this browser."));
       return start("admin");
     }
     let s={};
@@ -1368,7 +1371,6 @@ if(!CFG.projectId||/ضع/.test(CFG.projectId)){
     if(!["jordan","view","club"].includes(s.role)){ if(!enforce&&ROLE) return; return logout(pendingMsg); }
     // opening another account's link on a device that's signed in switches accounts
     if(enforce && wanted && (wanted!==s.role || (wanted==="club"&&wantedClub&&wantedClub!==s.clubId))) return logout();
-    if(!enforce && ROLE && ROLE!==s.role) toast(L("تم الدخول بحساب آخر من نافذة أخرى في نفس المتصفح.","Another account signed in from another tab of this browser."));
     start(s.role, s.clubId||"");
   });
 }
